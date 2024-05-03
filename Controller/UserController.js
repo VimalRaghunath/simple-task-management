@@ -3,6 +3,7 @@ const { joiUserValidationSchema } = require("../Model/validationSchema")
 const { model } = require("mongoose")
 const UserSchema = require("../Model/UserSchema")
 const { json } = require("express");
+const generateToken = require("../Middleware/userAuth");
 
 
 
@@ -20,21 +21,26 @@ module.exports = {
         const existinguser = await UserSchema.findOne({ email });
 
         if(existinguser){
-            return res.status(400).json({
-                status : "Error",
-                message: "This Email Already Exists. choose another one"
-            })
+            res.status(400);
+            throw new Error("User Already Exists")
         }
 
-        await UserSchema.create({
+        const user = await UserSchema.create({
             name,
             email,
             password
         })
-        res.status(200).json({
-            status: "Success",
-            message: "User Registration Done"
+        if(user) { 
+            res.status(200).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            token: generateToken(user._id)
         })
+     } else {
+        res.status(400)
+        throw new Error("Failed to create the user")
+     }
     },
 
     loginUser: async (req, res) => {
